@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1d2021">
+<meta name="color-scheme" content="dark">
+<title>{{.Title}} · gymtracker</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/">gym<b>tracker</b></a>
+  {{if .User}}
+  <form method="post" action="/users/switch" class="who">
+    <span>{{.User.Name}}</span>
+    <button type="submit" class="link">switch</button>
+  </form>
+  {{end}}
+</header>
+<main>
+  {{if .Error}}<p class="flash err">{{.Error}}</p>{{end}}
+  {{if .Info}}<p class="flash ok">{{.Info}}</p>{{end}}
+  {{template "content" .}}
+</main>
+{{if .User}}
+<nav class="bottom">
+  <a href="/" {{if eq .Path "/"}}class="on"{{end}}>Today</a>
+  <a href="/session" {{if hasPrefix .Path "/session"}}class="on"{{end}}>{{if .User.Current}}<i class="dot"></i>{{end}}Session</a>
+  <a href="/programs" {{if hasPrefix .Path "/programs"}}class="on"{{end}}>Programs</a>
+  <a href="/history" {{if hasPrefix .Path "/history"}}class="on"{{end}}>History</a>
+  <a href="/exercises" {{if hasPrefix .Path "/exercises"}}class="on"{{end}}>Lifts</a>
+</nav>
+{{end}}
+</body>
+</html>

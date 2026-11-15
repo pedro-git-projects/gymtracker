@@ -1,0 +1,30 @@
+{{define "content"}}
+{{$v := .Data}}
+<section class="hero">
+  <h1>{{$v.Name}}</h1>
+  <p class="muted">{{len $v.Entries}} sessions</p>
+  {{if $v.Entries}}
+  <div class="stats">
+    <div><b>{{$v.Best}}</b><span>kg best</span></div>
+    <div><b>{{$v.MaxVol}}</b><span>kg best volume</span></div>
+  </div>
+  {{end}}
+</section>
+{{if $v.Entries}}
+<table class="table">
+  <thead><tr><th>date</th><th>sets</th><th class="num">top</th><th class="num">vol</th></tr></thead>
+  <tbody>
+  {{range $v.Entries}}
+  <tr>
+    <td>{{date .Date}}</td>
+    <td class="setlist">{{range .Log.CompletedSets}}<span class="set done">{{.Reps}}@{{.Load}}</span>{{end}}</td>
+    <td class="num">{{.Log.TopLoad}}</td>
+    <td class="num">{{.Log.Volume}}</td>
+  </tr>
+  {{end}}
+  </tbody>
+</table>
+{{else}}
+<p class="muted">No completed sets logged for this exercise yet.</p>
+{{end}}
+{{end}}

@@ -1,0 +1,134 @@
+{{define "content"}}
+{{$s := .Data.Session}}
+<section class="hero">
+  <h1>{{$s.Target}}</h1>
+  <p class="muted">{{$s.Day}} · started {{clock $s.StartedAt}} · {{.Data.Done}}/{{.Data.Total}} sets</p>
+  <div class="bar"><span style="width: {{if .Data.Total}}{{printf "%d" (mul100 .Data.Done .Data.Total)}}{{else}}0{{end}}%"></span></div>
+</section>
+
+{{range .Data.Exercises}}
+{{$l := .Log}}
+{{$ex := $l.Exercise}}
+<section class="card exercise" id="{{$ex}}">
+  <header class="exhead">
+    <h2><a href="/exercises/{{esc (printf "%s" $ex)}}">{{$ex}}</a></h2>
+    <p class="meta">{{$l.Planned.Sets}}×{{$l.Planned.Reps}} <span class="muted">{{$l.Planned.RM}}RM</span>{{if $l.Planned.Rest}} · rest {{dur $l.Planned.Rest}}{{end}}</p>
+    {{if $l.Planned.Notes}}<p class="note">{{$l.Planned.Notes}}</p>{{end}}
+    {{if .HitTop}}<p class="badge up">Top of range hit · add load next time</p>{{end}}
+  </header>
+
+  {{if .Previous}}
+  <ul class="prev">
+    {{range .Previous}}
+    <li><span class="muted">{{date .Date}}</span> {{range .Log.CompletedSets}}<span class="set">{{.Reps}}@{{.Load}}</span>{{end}}</li>
+    {{end}}
+  </ul>
+  {{end}}
+
+  <form method="post" action="/session/load" class="row tight loadall">
+    <input type="hidden" name="exercise" value="{{$ex}}">
+    <input type="hidden" name="anchor" value="{{$ex}}">
+    <label>Load <input type="number" name="load" min="0" max="999" inputmode="numeric" value="{{if $l.Sets}}{{(index $l.Sets 0).Load}}{{end}}"></label>
+    <button type="submit" class="btn small ghost">Apply to open sets</button>
+  </form>
+
+  <div class="sets">
+    <div class="sethead"><span>#</span><span>reps</span><span>kg</span><span></span></div>
+    {{range $i, $set := $l.Sets}}
+    <form method="post" action="/session/sets" class="set {{if $set.Done}}done{{end}}" data-rest="{{secs $l.Planned.Rest}}">
+      <input type="hidden" name="exercise" value="{{$ex}}">
+      <input type="hidden" name="anchor" value="{{$ex}}">
+      <input type="hidden" name="set" value="{{$i}}">
+      <span class="num">{{add $i 1}}</span>
+      <input type="number" name="reps" min="1" max="255" value="{{$set.Reps}}" inputmode="numeric" required>
+      <input type="number" name="load" min="0" max="999" value="{{$set.Load}}" inputmode="numeric" required>
+      <button type="submit" class="btn tick" aria-label="Log set">{{if $set.Done}}✓{{else}}log{{end}}</button>
+      {{if $set.Load}}<span class="plates">{{plates $set.Load}}</span>{{end}}
+    </form>
+    {{end}}
+    <form method="post" action="/session/sets" class="set extra" data-rest="{{secs $l.Planned.Rest}}">
+      <input type="hidden" name="exercise" value="{{$ex}}">
+      <input type="hidden" name="anchor" value="{{$ex}}">
+      <input type="hidden" name="set" value="{{len $l.Sets}}">
+      <span class="num">+</span>
+      <input type="number" name="reps" min="1" max="255" value="{{$l.Planned.Reps}}" inputmode="numeric" required>
+      <input type="number" name="load" min="0" max="999" value="{{if $l.Sets}}{{(index $l.Sets (sub (len $l.Sets) 1)).Load}}{{else}}{{$l.Planned.Load}}{{end}}" inputmode="numeric" required>
+      <button type="submit" class="btn tick ghost" aria-label="Add extra set">add</button>
+    </form>
+  </div>
+
+  <div class="row tight">
+    {{if $l.Planned.Rest}}<button type="button" class="btn small ghost" data-rest="{{secs $l.Planned.Rest}}">Rest {{dur $l.Planned.Rest}}</button>{{end}}
+    <details class="grow">
+      <summary class="btn small ghost">Notes{{if $l.Notes}} ·{{end}}</summary>
+      <form method="post" action="/session/notes" class="row tight">
+        <input type="hidden" name="exercise" value="{{$ex}}">
+        <input type="hidden" name="anchor" value="{{$ex}}">
+        <input type="text" name="notes" value="{{$l.Notes}}" placeholder="How did it feel?">
+        <button type="submit" class="btn small">Save</button>
+      </form>
+    </details>
+  </div>
+</section>
+{{end}}
+
+<section class="card">
+  <h2>Finish</h2>
+  <form method="post" action="/session/finish" class="stack">
+    <textarea name="notes" rows="2" placeholder="Session notes (optional)">{{$s.Notes}}</textarea>
+    <button type="submit" class="btn big wide">Finish session</button>
+  </form>
+  <form method="post" action="/session/discard" class="right" onsubmit="return confirm('Discard this session? Nothing will be saved.')">
+    <button type="submit" class="link danger">discard session</button>
+  </form>
+</section>
+
+<div id="timer" class="timer" hidden>
+  <span class="label">rest</span>
+  <span class="left">0s</span>
+  <button type="button" class="btn small ghost">dismiss</button>
+</div>
+<script>
+(function () {
+  var bar = document.getElementById('timer');
+  var out = bar.querySelector('.left');
+  var tick = null;
+  var key = 'gt.restEnd';
+  function stop() { if (tick) clearInterval(tick); tick = null; }
+  function render() {
+    var end = parseInt(sessionStorage.getItem(key) || '0', 10);
+    var left = Math.max(0, Math.round((end - Date.now()) / 1000));
+    out.textContent = left + 's';
+    if (left <= 0) {
+      stop();
+      bar.classList.add('up');
+      out.textContent = 'go';
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    }
+  }
+  function start(seconds) {
+    if (!seconds) return;
+    sessionStorage.setItem(key, String(Date.now() + seconds * 1000));
+    bar.hidden = false;
+    bar.classList.remove('up');
+    stop();
+    tick = setInterval(render, 250);
+    render();
+  }
+  document.querySelectorAll('button[data-rest]').forEach(function (b) {
+    b.addEventListener('click', function () { start(parseInt(b.dataset.rest, 10)); });
+  });
+  document.querySelectorAll('form.set[data-rest]').forEach(function (f) {
+    f.addEventListener('submit', function () {
+      var s = parseInt(f.dataset.rest, 10);
+      if (s) sessionStorage.setItem(key, String(Date.now() + s * 1000));
+    });
+  });
+  bar.querySelector('button').addEventListener('click', function () {
+    stop(); bar.hidden = true; sessionStorage.removeItem(key);
+  });
+  var pending = parseInt(sessionStorage.getItem(key) || '0', 10);
+  if (pending > Date.now()) { bar.hidden = false; tick = setInterval(render, 250); render(); }
+})();
+</script>
+{{end}}

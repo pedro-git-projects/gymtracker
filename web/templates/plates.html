@@ -1,0 +1,21 @@
+{{define "content"}}
+{{$v := .Data}}
+<section class="hero">
+  <h1>Plates</h1>
+  <p class="muted">Which plates add up to a load. Available: 1, 3, 5, 10, 15, 20, 25 and 45 kg.</p>
+</section>
+<section class="card">
+  <form method="get" action="/plates" class="row">
+    <input type="number" name="load" min="1" max="300" value="{{if $v.Load}}{{$v.Load}}{{end}}" placeholder="kg" inputmode="numeric" required autofocus>
+    <button type="submit" class="btn">Calculate</button>
+  </form>
+</section>
+{{if $v.Load}}
+<section>
+  <h2 class="section">{{$v.Load}}kg · {{$v.Total}} combinations{{if $v.Truncated}} (showing first {{len $v.Combinations}}){{end}}</h2>
+  <ol class="combos">
+    {{range $v.Combinations}}<li>{{.}}</li>{{end}}
+  </ol>
+</section>
+{{end}}
+{{end}}

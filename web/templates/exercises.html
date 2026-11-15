@@ -1,0 +1,23 @@
+{{define "content"}}
+<section class="hero">
+  <h1>Lifts</h1>
+  <p class="muted">Every exercise you have programmed or logged. <a href="/plates">Plate calculator</a></p>
+</section>
+{{if .Data}}
+<table class="table">
+  <thead><tr><th>exercise</th><th class="num">best</th><th class="num">sessions</th><th>last</th></tr></thead>
+  <tbody>
+  {{range .Data}}
+  <tr>
+    <td><a href="/exercises/{{esc (printf "%s" .Name)}}">{{.Name}}</a></td>
+    <td class="num">{{if .TopLoad}}{{.TopLoad}}kg{{else}}–{{end}}</td>
+    <td class="num">{{.Sessions}}</td>
+    <td>{{if .Sessions}}{{date .Last}}{{else}}–{{end}}</td>
+  </tr>
+  {{end}}
+  </tbody>
+</table>
+{{else}}
+<p class="muted">No exercises yet. Add some to a program.</p>
+{{end}}
+{{end}}

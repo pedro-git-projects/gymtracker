@@ -1,0 +1,24 @@
+{{define "content"}}
+<section class="hero">
+  <h1>Who is training?</h1>
+  <p class="muted">Pick your profile. It is remembered on this device.</p>
+</section>
+{{if .Data.Users}}
+<section class="stack">
+  {{range .Data.Users}}
+  <form method="post" action="/users/select">
+    <input type="hidden" name="id" value="{{.ID}}">
+    <button type="submit" class="btn big wide">{{.Name}}</button>
+  </form>
+  {{end}}
+</section>
+{{end}}
+<section class="card">
+  <h2>New profile</h2>
+  <form method="post" action="/users" class="row">
+    <input type="text" name="name" placeholder="Name" required autocomplete="off">
+    <button type="submit" class="btn">Create</button>
+  </form>
+</section>
+<p class="muted small">Profiles are not passwords. Put the app behind Caddy basic auth before exposing it.</p>
+{{end}}

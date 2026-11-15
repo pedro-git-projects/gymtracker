@@ -1,0 +1,25 @@
+{{define "content"}}
+<section class="hero">
+  <h1>Programs</h1>
+  <p class="muted">One program is active at a time. Sessions are built from it.</p>
+</section>
+
+{{if .User.Programs}}
+<ul class="list">
+  {{range .User.Programs}}
+  <li><a href="/programs/{{.ID}}">
+    <span class="name">{{.Name}}{{if eq .ID $.User.ActiveProgram}} <em class="tag">active</em>{{end}}</span>
+    <span class="meta">{{len .TrainingDays}} training days · {{.TotalSets}} sets/week</span>
+  </a></li>
+  {{end}}
+</ul>
+{{end}}
+
+<section class="card">
+  <h2>New program</h2>
+  <form method="post" action="/programs" class="row">
+    <input type="text" name="name" placeholder="e.g. Upper / Lower" required autocomplete="off">
+    <button type="submit" class="btn">Create</button>
+  </form>
+</section>
+{{end}}

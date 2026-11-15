@@ -1,0 +1,87 @@
+{{define "content"}}
+{{$p := .Data.Program}}
+<section class="hero">
+  <h1>{{$p.Name}}{{if .Data.Active}} <em class="tag">active</em>{{end}}</h1>
+  <p class="muted">{{len $p.TrainingDays}} training days · {{$p.TotalSets}} sets per week</p>
+  <div class="actions">
+    {{if not .Data.Active}}
+    <form method="post" action="/programs/{{$p.ID}}/activate"><button type="submit" class="btn">Activate</button></form>
+    {{end}}
+    <details class="inline">
+      <summary class="btn ghost">Rename</summary>
+      <form method="post" action="/programs/{{$p.ID}}/rename" class="row">
+        <input type="text" name="name" value="{{$p.Name}}" required>
+        <button type="submit" class="btn">Save</button>
+      </form>
+    </details>
+    <form method="post" action="/programs/{{$p.ID}}/delete" onsubmit="return confirm('Delete this program?')">
+      <button type="submit" class="btn danger ghost">Delete</button>
+    </form>
+  </div>
+</section>
+
+{{range .Data.Days}}
+{{$day := .Day}}
+{{$wk := .Workout}}
+<section class="card dayplan {{if .Workout}}train{{else}}rest{{end}}">
+  <header class="dayhead">
+    <h2>{{$day}}</h2>
+    {{if .Workout}}
+    <form method="post" action="/programs/{{$p.ID}}/days/{{printf "%d" $day}}/target" class="row tight">
+      <select name="target" onchange="this.form.submit()">
+        {{range targets}}<option value="{{printf "%d" .}}" {{if eq . $wk.Target}}selected{{end}}>{{.}}</option>{{end}}
+      </select>
+      <noscript><button type="submit" class="btn small">Set</button></noscript>
+    </form>
+    {{else}}
+    <span class="muted">rest</span>
+    {{end}}
+  </header>
+
+  {{with .Workout}}
+  <ol class="exercises editable">
+    {{range $i, $e := .Exercises}}
+    <li>
+      <div>
+        <span class="name">{{$e.Exercise}}</span>
+        <span class="plan">{{$e.Sets}}×{{$e.Reps}} <span class="muted">{{$e.RM}}RM</span>{{if $e.Load}} @ {{$e.Load}}kg{{end}}{{if $e.Rest}} · rest {{dur $e.Rest}}{{end}}</span>
+        {{if $e.Notes}}<span class="note">{{$e.Notes}}</span>{{end}}
+      </div>
+      <div class="tools">
+        <form method="post" action="/programs/{{$p.ID}}/days/{{printf "%d" $day}}/exercises/{{$i}}/move"><input type="hidden" name="dir" value="up"><button class="icon" {{if eq $i 0}}disabled{{end}} title="Move up">↑</button></form>
+        <form method="post" action="/programs/{{$p.ID}}/days/{{printf "%d" $day}}/exercises/{{$i}}/move"><input type="hidden" name="dir" value="down"><button class="icon" {{if eq (add $i 1) (len $wk.Exercises)}}disabled{{end}} title="Move down">↓</button></form>
+        <form method="post" action="/programs/{{$p.ID}}/days/{{printf "%d" $day}}/exercises/{{$i}}/delete"><button class="icon danger" title="Remove">×</button></form>
+      </div>
+    </li>
+    {{end}}
+  </ol>
+  {{end}}
+
+  <details>
+    <summary class="btn ghost small">{{if .Workout}}Add exercise{{else}}Add workout{{end}}</summary>
+    <form method="post" action="/programs/{{$p.ID}}/days/{{printf "%d" $day}}/exercises" class="grid">
+      {{if not .Workout}}
+      <label class="span2">Target
+        <select name="target">{{range targets}}<option value="{{printf "%d" .}}">{{.}}</option>{{end}}</select>
+      </label>
+      {{end}}
+      <label class="span2">Exercise <input type="text" name="exercise" required autocomplete="off" placeholder="Bench press"></label>
+      <label>Sets <input type="number" name="sets" min="1" max="20" value="3" required inputmode="numeric"></label>
+      <label>Target reps <input type="number" name="reps" min="1" max="100" value="8" required inputmode="numeric"></label>
+      <label>RM low <input type="number" name="rm_low" min="1" max="100" value="8" inputmode="numeric"></label>
+      <label>RM high <input type="number" name="rm_high" min="1" max="100" value="12" inputmode="numeric"></label>
+      <label>Start load (kg) <input type="number" name="load" min="0" max="999" value="0" inputmode="numeric"></label>
+      <label>Rest (s) <input type="number" name="rest" min="0" max="900" step="15" value="90" inputmode="numeric"></label>
+      <label class="span2">Notes <input type="text" name="notes" autocomplete="off"></label>
+      <button type="submit" class="btn span2">Add</button>
+    </form>
+  </details>
+
+  {{if .Workout}}
+  <form method="post" action="/programs/{{$p.ID}}/days/{{printf "%d" $day}}/clear" class="right" onsubmit="return confirm('Make {{$day}} a rest day?')">
+    <button type="submit" class="link danger">make rest day</button>
+  </form>
+  {{end}}
+</section>
+{{end}}
+{{end}}

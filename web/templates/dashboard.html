@@ -1,0 +1,77 @@
+{{define "content"}}
+{{$d := .Data}}
+<section class="hero">
+  <h1>{{.Today}}</h1>
+  <p class="muted">{{date .Now}}{{if $d.Program}} · {{$d.Program.Name}}{{end}}</p>
+</section>
+
+{{if not $d.Program}}
+<section class="card">
+  <h2>No active program</h2>
+  <p>Create a program and activate it to start training.</p>
+  <a class="btn" href="/programs">Go to programs</a>
+</section>
+{{else}}
+
+<section class="week">
+  {{range $d.Week}}
+  <div class="day {{if .Training}}train{{else}}rest{{end}} {{if .Done}}done{{end}} {{if .Today}}today{{end}}">
+    <span class="name">{{.Day.Short}}</span>
+    <span class="mark">{{if .Done}}✓{{else if .Training}}·{{else}}–{{end}}</span>
+  </div>
+  {{end}}
+</section>
+
+{{if $d.Current}}
+<section class="card accent">
+  <h2>Session in progress</h2>
+  <p class="meta">{{$d.Current.Target}} · started {{clock $d.Current.StartedAt}} · {{$d.Done}}/{{$d.Total}} sets</p>
+  <a class="btn big wide" href="/session">Continue</a>
+</section>
+{{else if $d.Workout}}
+<section class="card">
+  <h2>{{$d.Workout.Target}}</h2>
+  <ol class="exercises">
+    {{range $d.Preview}}
+    <li>
+      <span class="name">{{.Exercise}}</span>
+      <span class="plan">{{.Sets}}×{{.Reps}} <span class="muted">{{.RM}}RM</span>{{if .Load}} @ {{.Load}}kg{{end}}</span>
+    </li>
+    {{end}}
+  </ol>
+  <form method="post" action="/session/start">
+    <input type="hidden" name="day" value="{{printf "%d" $d.Today}}">
+    <button type="submit" class="btn big wide">Start session</button>
+  </form>
+</section>
+{{else}}
+<section class="card">
+  <h2>Rest day</h2>
+  {{if $d.NextDay}}<p>Next training day is <b>{{$d.NextDay}}</b>.</p>{{end}}
+  <details>
+    <summary>Train a different day instead</summary>
+    <form method="post" action="/session/start" class="row">
+      <select name="day">
+        {{range $d.Week}}{{if .Training}}<option value="{{printf "%d" .Day}}">{{.Day}} · {{.Target}}</option>{{end}}{{end}}
+      </select>
+      <button type="submit" class="btn">Start</button>
+    </form>
+  </details>
+</section>
+{{end}}
+{{end}}
+
+{{if $d.Recent}}
+<section>
+  <h2 class="section">Recent sessions</h2>
+  <ul class="list">
+    {{range $d.Recent}}
+    <li><a href="/history/{{.ID}}">
+      <span class="name">{{.Target}}</span>
+      <span class="meta">{{date .StartedAt}} · {{dur .Duration}} · {{.Volume}}kg</span>
+    </a></li>
+    {{end}}
+  </ul>
+</section>
+{{end}}
+{{end}}

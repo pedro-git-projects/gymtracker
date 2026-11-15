@@ -1,0 +1,18 @@
+{{define "content"}}
+<section class="hero">
+  <h1>History</h1>
+  <p class="muted">{{len .Data}} sessions logged</p>
+</section>
+{{if .Data}}
+<ul class="list">
+  {{range .Data}}
+  <li><a href="/history/{{.ID}}">
+    <span class="name">{{.Target}} <span class="muted">· {{.Day.Short}}</span></span>
+    <span class="meta">{{datetime .StartedAt}} · {{dur .Duration}} · {{.Volume}}kg volume</span>
+  </a></li>
+  {{end}}
+</ul>
+{{else}}
+<p class="muted">Nothing yet. Finish a session and it shows up here.</p>
+{{end}}
+{{end}}
