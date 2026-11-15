@@ -8,7 +8,7 @@ type RM struct {
 }
 
 func (rm RM) String() string {
-	return fmt.Sprint("%d-%d", rm.LowerBound, rm.UpperBound)
+	return fmt.Sprintf("%d-%d", rm.LowerBound, rm.UpperBound)
 }
 
 func (rm RM) Validate() error {
