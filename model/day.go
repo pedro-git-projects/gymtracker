@@ -29,3 +29,15 @@ func (d Day) String() string {
 func (d Day) Valid() bool {
 	return d >= Sunday && d <= Saturday
 }
+
+func AllDays() []Day {
+	days := make([]Day, 0, 7)
+	for d := Sunday; d <= Saturday; d++ {
+		days = append(days, d)
+	}
+	return days
+}
+
+func (d Day) Short() string {
+	return dayName[d][:3]
+}

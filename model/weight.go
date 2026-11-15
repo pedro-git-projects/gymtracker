@@ -1,5 +1,11 @@
 package model
 
+import (
+	"slices"
+	"strconv"
+	"strings"
+)
+
 type WeightTypes int
 
 const (
@@ -94,4 +100,45 @@ func CalculateCombinations(target uint16) []WeightCombination {
 
 	search(target, 0)
 	return result
+}
+
+func (c WeightCombination) String() string {
+	parts := make([]string, len(c))
+	for i, w := range c {
+		parts[i] = strconv.Itoa(int(weightTypesValues[w]))
+	}
+	return strings.Join(parts, " + ")
+}
+
+// GreedyCombination returns the first combination found by taking the
+// largest plates first, without enumerating every alternative.
+func GreedyCombination(target uint16) WeightCombination {
+	if target == 0 {
+		return nil
+	}
+	var (
+		found   WeightCombination
+		current WeightCombination
+		search  func(remaining uint16, start int) bool
+	)
+	search = func(remaining uint16, start int) bool {
+		if remaining == 0 {
+			found = slices.Clone(current)
+			return true
+		}
+		for i := start; i < len(orderedWeightTypes); i++ {
+			value := weightTypesValues[orderedWeightTypes[i]]
+			if value > remaining {
+				continue
+			}
+			current = append(current, orderedWeightTypes[i])
+			if search(remaining-value, i) {
+				return true
+			}
+			current = current[:len(current)-1]
+		}
+		return false
+	}
+	search(target, 0)
+	return found
 }
