@@ -1,0 +1,4 @@
+# runtime data and build output
+gymtracker.json
+.gymtracker-*.json
+/gymtracker
