@@ -67,6 +67,9 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   color: var(--bg-h); background: var(--green);
   padding: 1px 6px; vertical-align: middle; text-transform: uppercase;
 }
+.tag.bw { color: var(--fg2); background: var(--bg2); }
+.note a, .wrap a { overflow-wrap: anywhere; text-decoration: underline; }
+.wrap { overflow-wrap: anywhere; }
 .badge { display: inline-block; font-size: 12px; padding: 2px 8px; border: var(--line) solid; margin: 4px 0; }
 .badge.up { color: var(--green); border-color: var(--green-d); }
 
@@ -145,6 +148,9 @@ select {
   background-size: 5px 5px; background-repeat: no-repeat; padding-right: 28px;
 }
 textarea { width: 100%; resize: vertical; }
+input[type=checkbox] { width: 22px; height: 22px; min-height: 0; padding: 0; flex: none; cursor: pointer; }
+input[type=checkbox]:checked { background: var(--yellow); border-color: var(--yellow); box-shadow: inset 0 0 0 4px var(--bg-h); }
+label.check { flex-direction: row; align-items: center; gap: 8px; cursor: pointer; }
 label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--fg4); text-transform: lowercase; }
 label input, label select { color: var(--fg); font-size: 15px; }
 ::placeholder { color: var(--bg4); }
@@ -252,7 +258,7 @@ details.inline { display: inline-block; }
 
 .sets { display: flex; flex-direction: column; gap: 4px; }
 .sethead, form.set {
-  display: grid; grid-template-columns: 28px 1fr 1fr 64px; gap: 6px; align-items: center;
+  display: grid; grid-template-columns: 28px 1fr 1fr 64px 34px; gap: 6px; align-items: center;
 }
 .sethead { font-size: 11px; color: var(--fg4); text-transform: lowercase; padding: 0 2px; }
 .sethead span:nth-child(2), .sethead span:nth-child(3) { padding-left: 10px; }
@@ -264,8 +270,7 @@ form.set.done .num { color: var(--green); }
 form.set input { width: 100%; min-width: 0; padding: 6px 8px; font-size: 16px; }
 form.set .btn.tick { padding: 0; min-height: 42px; }
 form.set.done .btn.tick { background: var(--green); border-color: var(--green); }
-form.set .plates { grid-column: 2 / -1; font-size: 11px; color: var(--fg4); padding: 0 2px 2px; }
-form.set .plates::before { content: "plates: "; color: var(--gray); }
+form.set button.icon { min-height: 42px; padding: 0; }
 
 .setlist { display: flex; gap: 4px; flex-wrap: wrap; }
 .setlist .set { padding: 2px 6px; background: var(--bg1); color: var(--fg2); font-size: 13px; }
@@ -289,10 +294,22 @@ form.set .plates::before { content: "plates: "; color: var(--gray); }
 .dayhead select { min-height: 36px; padding: 6px 28px 6px 10px; font-size: 13px; }
 .exercises.editable li { align-items: center; }
 
-/* plates */
-.combos { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 4px; }
-.combos li { background: var(--bg); border: var(--line) solid var(--bg2); padding: 8px 10px; font-size: 13px; color: var(--fg2); }
-.combos li:first-child { border-color: var(--green-d); color: var(--fg0); }
+/* progression chart */
+.chart { margin: 0; }
+.chart figcaption { font-size: 13px; color: var(--fg3); }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart text { font: 11px var(--mono); fill: var(--fg4); }
+.chart .grid { stroke: var(--bg1); stroke-width: 1; }
+.chart .line { fill: none; stroke: var(--yellow); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .dot { fill: var(--yellow); stroke: var(--bg); stroke-width: 2; }
+.chart .end { fill: var(--fg0); font-weight: 700; }
+.chart .pt { outline: none; }
+.chart .pt rect { fill: transparent; pointer-events: all; }
+.chart .pt .cross { stroke: var(--bg4); stroke-width: 1; }
+.chart .pt .tip { fill: var(--fg0); }
+.chart .pt .cross, .chart .pt .dot, .chart .pt .tip { visibility: hidden; pointer-events: none; }
+.chart .pt:hover .cross, .chart .pt:hover .dot, .chart .pt:hover .tip,
+.chart .pt:focus .cross, .chart .pt:focus .dot, .chart .pt:focus .tip { visibility: visible; }
 
 @media (min-width: 600px) {
   h1 { font-size: 28px; }
