@@ -3,7 +3,7 @@ package model
 type TargetMuscle int
 
 const (
-	UpperLower = iota
+	UpperBody TargetMuscle = iota
 	TotalBody
 	ChestShoulderTriceps
 	Push
@@ -14,7 +14,7 @@ const (
 )
 
 var targetMuscleName = map[TargetMuscle]string{
-	UpperLower:           "Upper lower",
+	UpperBody:            "Upper body",
 	TotalBody:            "Total body",
 	ChestShoulderTriceps: "Chest, shoulder & triceps",
 	Push:                 "Push",
