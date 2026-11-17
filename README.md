@@ -11,7 +11,9 @@ go build -o gymtracker .
 ```
 
 All state lives in the one JSON file given by `-data` (created on first
-write). Back it up by copying the file.
+write). Back it up by copying the file, or with the "export json" link in
+the page header, which downloads the same document; a downloaded copy can be
+passed straight back as `-data`.
 
 ## Expose it through Caddy
 
@@ -30,10 +32,11 @@ gym.example.com {
 
 ## Layout
 
-- `model/`  domain types: programs, workouts, sessions, history, plate maths
+- `model/`  domain types: programs, workouts, sessions, history
 - `store/`  JSON file persistence with a mutex and atomic writes
 - `web/`    `net/http` handlers, `html/template` pages and the stylesheet,
             all embedded into the binary
 
 The only client side script is the rest timer on the session page. Every
-form works with scripting disabled.
+form works with scripting disabled, and the progression chart on each lift
+page is server rendered SVG.
