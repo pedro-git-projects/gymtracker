@@ -23,6 +23,24 @@ type UserData struct {
 	ActiveProgram string
 	Current       *model.Session
 	History       model.History
+	// Bodyweight marks exercises, by name, whose load is weight added on top
+	// of the lifter. Absent in data files written by older versions.
+	Bodyweight map[model.Exercise]bool `json:",omitempty"`
+}
+
+func (u *UserData) IsBodyweight(ex model.Exercise) bool {
+	return u.Bodyweight[ex]
+}
+
+func (u *UserData) SetBodyweight(ex model.Exercise, on bool) {
+	if !on {
+		delete(u.Bodyweight, ex)
+		return
+	}
+	if u.Bodyweight == nil {
+		u.Bodyweight = map[model.Exercise]bool{}
+	}
+	u.Bodyweight[ex] = true
 }
 
 func (u *UserData) Program(id string) *model.Program {
@@ -114,6 +132,14 @@ func (s *Store) Update(fn func(*Data) error) error {
 		return err
 	}
 	return s.save()
+}
+
+// Export returns the whole data file as it would be written to disk, so a
+// downloaded copy can be used directly as the -data file.
+func (s *Store) Export() ([]byte, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return json.MarshalIndent(s.data, "", "  ")
 }
 
 func (s *Store) save() error {
