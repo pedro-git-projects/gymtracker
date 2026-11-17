@@ -1,15 +1,50 @@
 {{define "content"}}
 {{$v := .Data}}
 <section class="hero">
-  <h1>{{$v.Name}}</h1>
+  <h1>{{$v.Name}}{{if $v.BW}} <em class="tag bw">bodyweight</em>{{end}}</h1>
   <p class="muted">{{len $v.Entries}} sessions</p>
   {{if $v.Entries}}
   <div class="stats">
+    {{if $v.BW}}
+    <div><b>{{load true $v.Best}}</b><span>best</span></div>
+    {{if $v.MaxVol}}<div><b>{{$v.MaxVol}}</b><span>kg best added volume</span></div>{{end}}
+    {{else}}
     <div><b>{{$v.Best}}</b><span>kg best</span></div>
     <div><b>{{$v.MaxVol}}</b><span>kg best volume</span></div>
+    {{end}}
   </div>
   {{end}}
+  <form method="post" action="/exercises/{{esc (printf "%s" $v.Name)}}/bodyweight" class="actions">
+    <input type="hidden" name="on" value="{{if $v.BW}}0{{else}}1{{end}}">
+    <button type="submit" class="btn small ghost">{{if $v.BW}}Unmark bodyweight{{else}}Mark as bodyweight{{end}}</button>
+    <span class="muted small">{{if $v.BW}}Loads count as weight added to your body.{{else}}For dips, pull-ups and the like.{{end}}</span>
+  </form>
 </section>
+{{with $v.Chart}}
+<figure class="card chart">
+  <figcaption>{{.Title}}</figcaption>
+  <svg viewBox="0 0 {{.W}} {{.H}}" role="img" aria-label="{{.Title}}, {{.First}} to {{.Last}}. The table below lists every session.">
+    {{range .Ticks}}
+    <line class="grid" x1="{{$v.Chart.Left}}" x2="{{$v.Chart.Right}}" y1="{{.Y}}" y2="{{.Y}}"/>
+    <text class="axis" x="{{$v.Chart.Left}}" y="{{.Y}}" dx="-6" dy="4" text-anchor="end">{{.Label}}</text>
+    {{end}}
+    <text class="axis" x="{{.Left}}" y="{{.H}}" dy="-8">{{.First}}</text>
+    <text class="axis" x="{{.Right}}" y="{{.H}}" dy="-8" text-anchor="end">{{.Last}}</text>
+    <path class="line" d="{{.Path}}"/>
+    {{if .Dots}}{{range .Points}}<circle class="dot" cx="{{.X}}" cy="{{.Y}}" r="4"/>{{end}}
+    {{else}}{{with index .Points (sub (len .Points) 1)}}<circle class="dot" cx="{{.X}}" cy="{{.Y}}" r="4"/>{{end}}{{end}}
+    <text class="end" x="{{.EndX}}" y="{{.EndY}}" dy="4">{{.End}}</text>
+    {{range .Points}}
+    <g class="pt" tabindex="0">
+      <rect x="{{.HitX}}" y="0" width="{{.HitW}}" height="{{$v.Chart.Bottom}}"/>
+      <line class="cross" x1="{{.X}}" x2="{{.X}}" y1="{{$v.Chart.Top}}" y2="{{$v.Chart.Bottom}}"/>
+      <circle class="dot on" cx="{{.X}}" cy="{{.Y}}" r="5"/>
+      <text class="tip" x="{{.TipX}}" y="{{$v.Chart.TipY}}" text-anchor="{{.Anchor}}">{{.Tip}}</text>
+    </g>
+    {{end}}
+  </svg>
+</figure>
+{{end}}
 {{if $v.Entries}}
 <table class="table">
   <thead><tr><th>date</th><th>sets</th><th class="num">top</th><th class="num">vol</th></tr></thead>
@@ -17,8 +52,8 @@
   {{range $v.Entries}}
   <tr>
     <td>{{date .Date}}</td>
-    <td class="setlist">{{range .Log.CompletedSets}}<span class="set done">{{.Reps}}@{{.Load}}</span>{{end}}</td>
-    <td class="num">{{.Log.TopLoad}}</td>
+    <td class="setlist">{{range .Log.CompletedSets}}<span class="set done">{{.Reps}}@{{chip $v.BW .Load}}</span>{{end}}</td>
+    <td class="num">{{if $v.BW}}{{chip true .Log.TopLoad}}{{else}}{{.Log.TopLoad}}{{end}}</td>
     <td class="num">{{.Log.Volume}}</td>
   </tr>
   {{end}}

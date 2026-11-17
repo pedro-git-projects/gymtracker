@@ -35,7 +35,7 @@
     {{range $d.Preview}}
     <li>
       <span class="name">{{.Exercise}}</span>
-      <span class="plan">{{.Sets}}×{{.Reps}} <span class="muted">{{.RM}}RM</span>{{if .Load}} @ {{.Load}}kg{{end}}</span>
+      <span class="plan">{{.Sets}}×{{.Reps}} <span class="muted">{{.RM}}RM</span>{{if $.User.IsBodyweight .Exercise}} @ {{load true .Load}}{{else if .Load}} @ {{.Load}}kg{{end}}</span>
     </li>
     {{end}}
   </ol>

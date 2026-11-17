@@ -49,7 +49,9 @@ func (s *Server) parseTemplates() error {
 	funcs := template.FuncMap{
 		"days":     model.AllDays,
 		"targets":  model.AllTargetMuscles,
-		"plates":   func(load uint16) string { return model.GreedyCombination(load).String() },
+		"linkify":  linkify,
+		"load":     formatLoad,
+		"chip":     formatChip,
 		"secs":     func(d time.Duration) int { return int(d.Seconds()) },
 		"dur":      formatDuration,
 		"date":     func(t time.Time) string { return t.Format("Mon 02 Jan") },
@@ -180,6 +182,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /session", s.session)
 	s.mux.HandleFunc("POST /session/start", s.startSession)
 	s.mux.HandleFunc("POST /session/sets", s.logSet)
+	s.mux.HandleFunc("POST /session/sets/delete", s.removeSet)
 	s.mux.HandleFunc("POST /session/load", s.setLoad)
 	s.mux.HandleFunc("POST /session/notes", s.setNotes)
 	s.mux.HandleFunc("POST /session/finish", s.finishSession)
@@ -191,8 +194,9 @@ func (s *Server) routes() {
 
 	s.mux.HandleFunc("GET /exercises", s.exercises)
 	s.mux.HandleFunc("GET /exercises/{name}", s.exercise)
+	s.mux.HandleFunc("POST /exercises/{name}/bodyweight", s.setBodyweight)
 
-	s.mux.HandleFunc("GET /plates", s.plates)
+	s.mux.HandleFunc("GET /export", s.export)
 }
 
 // --- users ---------------------------------------------------------------
@@ -587,7 +591,7 @@ func (s *Server) clearDay(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) addExercise(w http.ResponseWriter, r *http.Request) {
-	s.programAction(w, r, "Exercise added.", func(_ *store.UserData, p *model.Program) error {
+	s.programAction(w, r, "Exercise added.", func(u *store.UserData, p *model.Program) error {
 		day, err := parseDay(r)
 		if err != nil {
 			return err
@@ -605,7 +609,13 @@ func (s *Server) addExercise(w http.ResponseWriter, r *http.Request) {
 			wk = model.Workout{Target: t}
 		}
 		wk.AddExercise(e)
-		return p.SetWorkout(day, wk)
+		if err := p.SetWorkout(day, wk); err != nil {
+			return err
+		}
+		if r.FormValue("bodyweight") != "" {
+			u.SetBodyweight(e.Exercise, true)
+		}
+		return nil
 	})
 }
 
@@ -680,6 +690,7 @@ type sessionExercise struct {
 	Log      model.ExerciseLog
 	Previous []model.ExerciseEntry
 	HitTop   bool
+	BW       bool
 }
 
 func (s *Server) session(w http.ResponseWriter, r *http.Request) {
@@ -702,7 +713,7 @@ func (s *Server) session(w http.ResponseWriter, r *http.Request) {
 			for a, b := 0, len(prev)-1; a < b; a, b = a+1, b-1 {
 				prev[a], prev[b] = prev[b], prev[a]
 			}
-			v.Exercises = append(v.Exercises, sessionExercise{Index: i, Log: l, Previous: prev, HitTop: l.HitTopOfRange()})
+			v.Exercises = append(v.Exercises, sessionExercise{Index: i, Log: l, Previous: prev, HitTop: l.HitTopOfRange(), BW: u.IsBodyweight(l.Exercise())})
 			v.Total += len(l.Sets)
 			v.Done += len(l.CompletedSets())
 		}
@@ -771,6 +782,12 @@ func (s *Server) logSet(w http.ResponseWriter, r *http.Request) {
 			return fmt.Errorf("%s: reps must be between 1 and 255", ex)
 		}
 		return sess.LogSet(ex, idx, model.Reps(reps), uint16(load))
+	})
+}
+
+func (s *Server) removeSet(w http.ResponseWriter, r *http.Request) {
+	s.sessionAction(w, r, func(_ *store.UserData, sess *model.Session) error {
+		return sess.RemoveSet(model.Exercise(r.FormValue("exercise")), formUint(r, "set", -1))
 	})
 }
 
@@ -893,6 +910,7 @@ type exerciseRow struct {
 	Sessions int
 	TopLoad  uint16
 	Last     time.Time
+	BW       bool
 }
 
 func (s *Server) exercises(w http.ResponseWriter, r *http.Request) {
@@ -933,6 +951,7 @@ func (s *Server) exercises(w http.ResponseWriter, r *http.Request) {
 		}
 		list := make([]exerciseRow, 0, len(rows))
 		for _, row := range rows {
+			row.BW = u.IsBodyweight(row.Name)
 			list = append(list, *row)
 		}
 		sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
@@ -945,6 +964,8 @@ type exerciseView struct {
 	Entries []model.ExerciseEntry
 	Best    uint16
 	MaxVol  int
+	BW      bool
+	Chart   *chart
 }
 
 func (s *Server) exercise(w http.ResponseWriter, r *http.Request) {
@@ -955,7 +976,8 @@ func (s *Server) exercise(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		name := model.Exercise(r.PathValue("name"))
-		v := exerciseView{Name: name, Entries: u.History.ForExercise(name)}
+		v := exerciseView{Name: name, Entries: u.History.ForExercise(name), BW: u.IsBodyweight(name)}
+		v.Chart = progressionChart(v.Entries, v.BW)
 		for _, e := range v.Entries {
 			if e.Log.TopLoad() > v.Best {
 				v.Best = e.Log.TopLoad()
@@ -971,31 +993,29 @@ func (s *Server) exercise(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// --- plates --------------------------------------------------------------
-
-type platesView struct {
-	Load         int
-	Combinations []model.WeightCombination
-	Total        int
-	Truncated    bool
+func (s *Server) setBodyweight(w http.ResponseWriter, r *http.Request) {
+	name := model.Exercise(r.PathValue("name"))
+	err := s.withUser(w, r, func(u *store.UserData) error {
+		u.SetBodyweight(name, r.FormValue("on") == "1")
+		return nil
+	})
+	if errors.Is(err, errNoUser) {
+		return
+	}
+	redirect(w, r, "/exercises/"+url.PathEscape(string(name)), err, "")
 }
 
-func (s *Server) plates(w http.ResponseWriter, r *http.Request) {
-	s.store.View(func(d *store.Data) {
-		uid, u := s.currentUser(r, d)
-		v := platesView{Load: formUint(r, "load", 0)}
-		if v.Load > 300 {
-			v.Load = 300
-		}
-		if v.Load > 0 {
-			all := model.CalculateCombinations(uint16(v.Load))
-			v.Total = len(all)
-			if len(all) > 40 {
-				all = all[:40]
-				v.Truncated = true
-			}
-			v.Combinations = all
-		}
-		s.render(w, r, "plates.html", "Plates", uid, u, v)
-	})
+// --- export --------------------------------------------------------------
+
+func (s *Server) export(w http.ResponseWriter, r *http.Request) {
+	raw, err := s.store.Export()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	name := "gymtracker-" + time.Now().Format("2006-01-02") + ".json"
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Disposition", `attachment; filename="`+name+`"`)
+	w.Header().Set("Cache-Control", "no-store")
+	w.Write(raw)
 }

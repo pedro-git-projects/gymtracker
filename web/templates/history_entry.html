@@ -11,19 +11,20 @@
 </section>
 
 {{range $s.Exercises}}
+{{$bw := $.User.IsBodyweight .Exercise}}
 <section class="card">
   <h2><a href="/exercises/{{esc (printf "%s" .Exercise)}}">{{.Exercise}}</a></h2>
-  <p class="meta">planned {{.Planned.Sets}}×{{.Planned.Reps}} <span class="muted">{{.Planned.RM}}RM</span> · top {{.TopLoad}}kg · {{.Volume}}kg</p>
+  <p class="meta">planned {{.Planned.Sets}}×{{.Planned.Reps}} <span class="muted">{{.Planned.RM}}RM</span> · top {{load $bw .TopLoad}}{{if or (not $bw) .Volume}} · {{.Volume}}kg{{end}}</p>
   <div class="setlist">
     {{range $i, $set := .Sets}}
-    <span class="set {{if $set.Done}}done{{else}}skipped{{end}}">{{add $i 1}}: {{$set.Reps}}@{{$set.Load}}</span>
+    <span class="set {{if $set.Done}}done{{else}}skipped{{end}}">{{add $i 1}}: {{$set.Reps}}@{{chip $bw $set.Load}}</span>
     {{end}}
   </div>
-  {{if .Notes}}<p class="note">{{.Notes}}</p>{{end}}
+  {{if .Notes}}<p class="note">{{linkify .Notes}}</p>{{end}}
 </section>
 {{end}}
 
-{{if $s.Notes}}<section class="card"><h2>Notes</h2><p>{{$s.Notes}}</p></section>{{end}}
+{{if $s.Notes}}<section class="card"><h2>Notes</h2><p class="wrap">{{linkify $s.Notes}}</p></section>{{end}}
 
 <form method="post" action="/history/{{$s.ID}}/delete" class="right" onsubmit="return confirm('Delete this session from history?')">
   <button type="submit" class="link danger">delete session</button>
