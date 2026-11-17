@@ -46,6 +46,16 @@ func (l ExerciseLog) TopLoad() uint16 {
 	return top
 }
 
+func (l ExerciseLog) TopReps() Reps {
+	var top Reps
+	for _, s := range l.CompletedSets() {
+		if s.Reps > top {
+			top = s.Reps
+		}
+	}
+	return top
+}
+
 func (l ExerciseLog) Volume() int {
 	total := 0
 	for _, s := range l.CompletedSets() {
@@ -129,6 +139,21 @@ func (s *Session) LogSet(ex Exercise, setIndex int, reps Reps, load uint16) erro
 		l.Sets = append(l.Sets, SetLog{})
 	}
 	l.Sets[setIndex] = SetLog{Reps: reps, Load: load, Done: true}
+	return nil
+}
+
+func (s *Session) RemoveSet(ex Exercise, setIndex int) error {
+	if s.Finished() {
+		return errors.New("session is already finished")
+	}
+	l := s.Exercise(ex)
+	if l == nil {
+		return fmt.Errorf("%s is not part of this session", ex)
+	}
+	if setIndex < 0 || setIndex >= len(l.Sets) {
+		return fmt.Errorf("%s: set %d does not exist", ex, setIndex+1)
+	}
+	l.Sets = append(l.Sets[:setIndex], l.Sets[setIndex+1:]...)
 	return nil
 }
 
