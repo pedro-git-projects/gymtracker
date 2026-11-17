@@ -43,9 +43,10 @@
     {{range $i, $e := .Exercises}}
     <li>
       <div>
-        <span class="name">{{$e.Exercise}}</span>
-        <span class="plan">{{$e.Sets}}×{{$e.Reps}} <span class="muted">{{$e.RM}}RM</span>{{if $e.Load}} @ {{$e.Load}}kg{{end}}{{if $e.Rest}} · rest {{dur $e.Rest}}{{end}}</span>
-        {{if $e.Notes}}<span class="note">{{$e.Notes}}</span>{{end}}
+        {{$bw := $.User.IsBodyweight $e.Exercise}}
+        <span class="name"><a href="/exercises/{{esc (printf "%s" $e.Exercise)}}">{{$e.Exercise}}</a>{{if $bw}} <em class="tag bw">bw</em>{{end}}</span>
+        <span class="plan">{{$e.Sets}}×{{$e.Reps}} <span class="muted">{{$e.RM}}RM</span>{{if $bw}} @ {{load true $e.Load}}{{else if $e.Load}} @ {{$e.Load}}kg{{end}}{{if $e.Rest}} · rest {{dur $e.Rest}}{{end}}</span>
+        {{if $e.Notes}}<span class="note">{{linkify $e.Notes}}</span>{{end}}
       </div>
       <div class="tools">
         <form method="post" action="/programs/{{$p.ID}}/days/{{printf "%d" $day}}/exercises/{{$i}}/move"><input type="hidden" name="dir" value="up"><button class="icon" {{if eq $i 0}}disabled{{end}} title="Move up">↑</button></form>
@@ -72,7 +73,8 @@
       <label>RM high <input type="number" name="rm_high" min="1" max="100" value="12" inputmode="numeric"></label>
       <label>Start load (kg) <input type="number" name="load" min="0" max="999" value="0" inputmode="numeric"></label>
       <label>Rest (s) <input type="number" name="rest" min="0" max="900" step="15" value="90" inputmode="numeric"></label>
-      <label class="span2">Notes <input type="text" name="notes" autocomplete="off"></label>
+      <label class="span2">Notes <input type="text" name="notes" autocomplete="off" placeholder="Cues, or a link to a video"></label>
+      <label class="span2 check"><input type="checkbox" name="bodyweight" value="1"> Bodyweight exercise (load is added weight)</label>
       <button type="submit" class="btn span2">Add</button>
     </form>
   </details>

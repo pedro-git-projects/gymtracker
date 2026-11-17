@@ -9,18 +9,20 @@
 {{range .Data.Exercises}}
 {{$l := .Log}}
 {{$ex := $l.Exercise}}
+{{$bw := .BW}}
 <section class="card exercise" id="{{$ex}}">
   <header class="exhead">
     <h2><a href="/exercises/{{esc (printf "%s" $ex)}}">{{$ex}}</a></h2>
-    <p class="meta">{{$l.Planned.Sets}}×{{$l.Planned.Reps}} <span class="muted">{{$l.Planned.RM}}RM</span>{{if $l.Planned.Rest}} · rest {{dur $l.Planned.Rest}}{{end}}</p>
-    {{if $l.Planned.Notes}}<p class="note">{{$l.Planned.Notes}}</p>{{end}}
+    <p class="meta">{{$l.Planned.Sets}}×{{$l.Planned.Reps}} <span class="muted">{{$l.Planned.RM}}RM</span>{{if $l.Planned.Rest}} · rest {{dur $l.Planned.Rest}}{{end}}{{if $bw}} · <em class="tag bw">bodyweight</em>{{end}}</p>
+    {{if $l.Planned.Notes}}<p class="note">{{linkify $l.Planned.Notes}}</p>{{end}}
+    {{if $l.Notes}}<p class="note">{{linkify $l.Notes}}</p>{{end}}
     {{if .HitTop}}<p class="badge up">Top of range hit · add load next time</p>{{end}}
   </header>
 
   {{if .Previous}}
   <ul class="prev">
     {{range .Previous}}
-    <li><span class="muted">{{date .Date}}</span> {{range .Log.CompletedSets}}<span class="set">{{.Reps}}@{{.Load}}</span>{{end}}</li>
+    <li><span class="muted">{{date .Date}}</span> {{range .Log.CompletedSets}}<span class="set">{{.Reps}}@{{chip $bw .Load}}</span>{{end}}</li>
     {{end}}
   </ul>
   {{end}}
@@ -28,12 +30,12 @@
   <form method="post" action="/session/load" class="row tight loadall">
     <input type="hidden" name="exercise" value="{{$ex}}">
     <input type="hidden" name="anchor" value="{{$ex}}">
-    <label>Load <input type="number" name="load" min="0" max="999" inputmode="numeric" value="{{if $l.Sets}}{{(index $l.Sets 0).Load}}{{end}}"></label>
+    <label>{{if $bw}}Added load{{else}}Load{{end}} <input type="number" name="load" min="0" max="999" inputmode="numeric" value="{{if $l.Sets}}{{(index $l.Sets 0).Load}}{{end}}"></label>
     <button type="submit" class="btn small ghost">Apply to open sets</button>
   </form>
 
   <div class="sets">
-    <div class="sethead"><span>#</span><span>reps</span><span>kg</span><span></span></div>
+    <div class="sethead"><span>#</span><span>reps</span><span>{{if $bw}}+kg{{else}}kg{{end}}</span><span></span><span></span></div>
     {{range $i, $set := $l.Sets}}
     <form method="post" action="/session/sets" class="set {{if $set.Done}}done{{end}}" data-rest="{{secs $l.Planned.Rest}}">
       <input type="hidden" name="exercise" value="{{$ex}}">
@@ -43,7 +45,7 @@
       <input type="number" name="reps" min="1" max="255" value="{{$set.Reps}}" inputmode="numeric" required>
       <input type="number" name="load" min="0" max="999" value="{{$set.Load}}" inputmode="numeric" required>
       <button type="submit" class="btn tick" aria-label="Log set">{{if $set.Done}}✓{{else}}log{{end}}</button>
-      {{if $set.Load}}<span class="plates">{{plates $set.Load}}</span>{{end}}
+      <button type="submit" class="icon danger" formaction="/session/sets/delete" formnovalidate title="Remove set" aria-label="Remove set {{add $i 1}}"{{if $set.Done}} onclick="return confirm('Remove this logged set?')"{{end}}>×</button>
     </form>
     {{end}}
     <form method="post" action="/session/sets" class="set extra" data-rest="{{secs $l.Planned.Rest}}">
@@ -54,6 +56,7 @@
       <input type="number" name="reps" min="1" max="255" value="{{$l.Planned.Reps}}" inputmode="numeric" required>
       <input type="number" name="load" min="0" max="999" value="{{if $l.Sets}}{{(index $l.Sets (sub (len $l.Sets) 1)).Load}}{{else}}{{$l.Planned.Load}}{{end}}" inputmode="numeric" required>
       <button type="submit" class="btn tick ghost" aria-label="Add extra set">add</button>
+      <span></span>
     </form>
   </div>
 
@@ -119,7 +122,8 @@
     b.addEventListener('click', function () { start(parseInt(b.dataset.rest, 10)); });
   });
   document.querySelectorAll('form.set[data-rest]').forEach(function (f) {
-    f.addEventListener('submit', function () {
+    f.addEventListener('submit', function (e) {
+      if (e.submitter && e.submitter.hasAttribute('formaction')) return;
       var s = parseInt(f.dataset.rest, 10);
       if (s) sessionStorage.setItem(key, String(Date.now() + s * 1000));
     });

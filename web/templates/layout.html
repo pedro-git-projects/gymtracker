@@ -14,6 +14,7 @@
   {{if .User}}
   <form method="post" action="/users/switch" class="who">
     <span>{{.User.Name}}</span>
+    <a class="link" href="/export" download>export json</a>
     <button type="submit" class="link">switch</button>
   </form>
   {{end}}
