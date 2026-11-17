@@ -17,10 +17,6 @@ type WorkoutExercise struct {
 	Notes    string
 }
 
-func (e WorkoutExercise) Weight() Weight {
-	return NewWeight(e.Load)
-}
-
 func (e WorkoutExercise) Validate() error {
 	if strings.TrimSpace(string(e.Exercise)) == "" {
 		return errors.New("exercise name is empty")
